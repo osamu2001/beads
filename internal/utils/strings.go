@@ -1,6 +1,9 @@
 package utils
 
-import "strings"
+import (
+	"strings"
+	"unicode"
+)
 
 // issueTypeAliases maps shorthand type names to canonical types
 var issueTypeAliases = map[string]string{
@@ -39,4 +42,41 @@ func NormalizeLabels(ss []string) []string {
 		out = append(out, s)
 	}
 	return out
+}
+
+// NormalizeDetectedIssuePrefix converts an auto-detected directory name into a
+// safe, canonical issue prefix. Explicit --prefix values are intentionally not
+// rewritten by this helper.
+func NormalizeDetectedIssuePrefix(name string) string {
+	name = strings.TrimSpace(strings.ToLower(name))
+
+	var b strings.Builder
+	b.Grow(len(name))
+	lastWasDash := false
+	for _, r := range name {
+		switch {
+		case r >= 'a' && r <= 'z', r >= '0' && r <= '9':
+			b.WriteRune(r)
+			lastWasDash = false
+		default:
+			if !lastWasDash {
+				b.WriteByte('-')
+				lastWasDash = true
+			}
+		}
+	}
+
+	prefix := strings.Trim(b.String(), "-")
+	if prefix == "" {
+		return "bd"
+	}
+	if unicode.IsDigit(rune(prefix[0])) {
+		return "bd-" + prefix
+	}
+	return prefix
+}
+
+// DatabaseNameFromPrefix derives the SQL database name from an issue prefix.
+func DatabaseNameFromPrefix(prefix string) string {
+	return strings.ReplaceAll(prefix, "-", "_")
 }

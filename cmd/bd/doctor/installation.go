@@ -12,6 +12,7 @@ import (
 	"github.com/steveyegge/beads/internal/configfile"
 	"github.com/steveyegge/beads/internal/git"
 	"github.com/steveyegge/beads/internal/storage/dolt"
+	"github.com/steveyegge/beads/internal/utils"
 )
 
 // CheckInstallation verifies that .beads directory exists
@@ -19,8 +20,7 @@ func CheckInstallation(path string) DoctorCheck {
 	beadsDir := filepath.Join(path, ".beads")
 	if _, err := os.Stat(beadsDir); os.IsNotExist(err) {
 		// Auto-detect prefix from directory name
-		prefix := filepath.Base(path)
-		prefix = strings.TrimRight(prefix, "-")
+		prefix := utils.NormalizeDetectedIssuePrefix(filepath.Base(path))
 
 		return DoctorCheck{
 			Name:    "Installation",

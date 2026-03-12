@@ -173,7 +173,8 @@ environment variable.`,
 			}
 		}
 
-		// Determine prefix with precedence: flag > config > auto-detect from git > auto-detect from directory name
+		// Determine prefix with precedence: flag > config > auto-detect from directory name.
+		autoDetectedPrefix := false
 		if prefix == "" {
 			// Try to get from config file
 			prefix = config.GetString("issue-prefix")
@@ -186,18 +187,23 @@ environment variable.`,
 			if err != nil {
 				FatalError("failed to get current directory: %v", err)
 			}
-			prefix = filepath.Base(cwd)
+			prefix = utils.NormalizeDetectedIssuePrefix(filepath.Base(cwd))
+			autoDetectedPrefix = true
 		}
 
-		// Normalize prefix: strip trailing hyphens
-		// The hyphen is added automatically during ID generation
-		prefix = strings.TrimRight(prefix, "-")
+		// Preserve legacy normalization for explicit/configured prefixes. Auto-detected
+		// prefixes already went through canonical normalization above.
+		if !autoDetectedPrefix {
+			// Normalize prefix: strip trailing hyphens
+			// The hyphen is added automatically during ID generation
+			prefix = strings.TrimRight(prefix, "-")
 
-		// Sanitize prefix for use as a MySQL database name.
-		// Directory names like "001" (common in temp dirs) are invalid because
-		// MySQL identifiers must start with a letter or underscore.
-		if len(prefix) > 0 && !((prefix[0] >= 'a' && prefix[0] <= 'z') || (prefix[0] >= 'A' && prefix[0] <= 'Z') || prefix[0] == '_') {
-			prefix = "bd_" + prefix
+			// Sanitize prefix for use as a MySQL database name.
+			// Directory names like "001" (common in temp dirs) are invalid because
+			// MySQL identifiers must start with a letter or underscore.
+			if len(prefix) > 0 && !((prefix[0] >= 'a' && prefix[0] <= 'z') || (prefix[0] >= 'A' && prefix[0] <= 'Z') || prefix[0] == '_') {
+				prefix = "bd_" + prefix
+			}
 		}
 
 		// Determine beadsDir first (used for all storage path calculations).
@@ -369,11 +375,10 @@ environment variable.`,
 		if existingCfg, _ := configfile.Load(beadsDir); existingCfg != nil && existingCfg.DoltDatabase != "" {
 			dbName = existingCfg.DoltDatabase
 		} else if prefix != "" {
-			// Sanitize hyphens to underscores for SQL-idiomatic database names.
 			// Must match the sanitization applied to metadata.json DoltDatabase
 			// field (line below), otherwise init creates a database with one name
 			// but metadata.json records a different name, causing reopens to fail.
-			dbName = strings.ReplaceAll(prefix, "-", "_")
+			dbName = utils.DatabaseNameFromPrefix(prefix)
 		} else {
 			dbName = "beads"
 		}
@@ -554,8 +559,7 @@ environment variable.`,
 				if database != "" {
 					cfg.DoltDatabase = database
 				} else if cfg.DoltDatabase == "" && prefix != "" {
-					// Sanitize hyphens to underscores for SQL-idiomatic names (GH#2142).
-					cfg.DoltDatabase = strings.ReplaceAll(prefix, "-", "_")
+					cfg.DoltDatabase = utils.DatabaseNameFromPrefix(prefix)
 				}
 
 				// Server mode for now; embedded mode returning soon

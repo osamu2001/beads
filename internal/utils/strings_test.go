@@ -195,3 +195,47 @@ func TestNormalizeIssueType(t *testing.T) {
 		})
 	}
 }
+
+func TestNormalizeDetectedIssuePrefix(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{name: "hidden config dir", input: ".config", expected: "config"},
+		{name: "dot-separated name", input: "my.app", expected: "my-app"},
+		{name: "numeric prefix", input: "001", expected: "bd-001"},
+		{name: "existing hyphenated prefix", input: "my-project", expected: "my-project"},
+		{name: "all punctuation", input: "...", expected: "bd"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NormalizeDetectedIssuePrefix(tt.input)
+			if result != tt.expected {
+				t.Errorf("NormalizeDetectedIssuePrefix(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestDatabaseNameFromPrefix(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{name: "hyphenated prefix", input: "my-project", expected: "my_project"},
+		{name: "already safe", input: "config", expected: "config"},
+		{name: "numeric fallback prefix", input: "bd-001", expected: "bd_001"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := DatabaseNameFromPrefix(tt.input)
+			if result != tt.expected {
+				t.Errorf("DatabaseNameFromPrefix(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}

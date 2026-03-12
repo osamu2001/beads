@@ -1858,6 +1858,49 @@ func TestInitDatabaseFlag(t *testing.T) {
 			t.Errorf("Expected error to mention 'invalid database name', got: %s", outStr)
 		}
 	})
+
+	t.Run("auto_detected_hidden_dir_prefix", func(t *testing.T) {
+		parentDir := t.TempDir()
+		hiddenDir := filepath.Join(parentDir, ".config")
+		if err := os.Mkdir(hiddenDir, 0750); err != nil {
+			t.Fatalf("Failed to create hidden work dir: %v", err)
+		}
+
+		cmd := exec.Command(bd, "init", "--quiet")
+		cmd.Dir = hiddenDir
+		cmd.Env = append(os.Environ(), "BEADS_NO_DAEMON=1")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("bd init in hidden dir failed: %v\n%s", err, out)
+		}
+
+		beadsDir := filepath.Join(hiddenDir, ".beads")
+		cfg, err := configfile.Load(beadsDir)
+		if err != nil {
+			t.Fatalf("Failed to load metadata.json: %v", err)
+		}
+		if cfg == nil {
+			t.Fatal("metadata.json not found")
+		}
+		if cfg.DoltDatabase != "config" {
+			t.Errorf("Expected DoltDatabase %q, got %q", "config", cfg.DoltDatabase)
+		}
+
+		s, err := openExistingTestDB(t, filepath.Join(beadsDir, "dolt"))
+		if err != nil {
+			t.Fatalf("Failed to reopen database: %v", err)
+		}
+		defer s.Close()
+
+		ctx := context.Background()
+		issuePrefix, err := s.GetConfig(ctx, "issue_prefix")
+		if err != nil {
+			t.Fatalf("Failed to get issue_prefix: %v", err)
+		}
+		if issuePrefix != "config" {
+			t.Errorf("Expected issue_prefix %q, got %q", "config", issuePrefix)
+		}
+	})
 }
 
 func TestInitBackendFlag(t *testing.T) {

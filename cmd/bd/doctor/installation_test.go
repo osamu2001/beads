@@ -19,6 +19,19 @@ func TestCheckInstallation(t *testing.T) {
 			t.Errorf("expected name 'Installation', got %s", check.Name)
 		}
 	})
+
+	t.Run("sanitizes hidden directory prefix in fix hint", func(t *testing.T) {
+		parentDir := t.TempDir()
+		hiddenDir := filepath.Join(parentDir, ".config")
+		if err := os.Mkdir(hiddenDir, 0755); err != nil {
+			t.Fatal(err)
+		}
+
+		check := CheckInstallation(hiddenDir)
+		if check.Fix != "Run 'bd init --prefix config' to initialize beads" {
+			t.Errorf("unexpected fix hint %q", check.Fix)
+		}
+	})
 }
 
 func TestCheckPermissions(t *testing.T) {
