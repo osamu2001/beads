@@ -1,15 +1,15 @@
 // Rotation for dolt-server.log.
 //
-// Background: dolt sql-server writes stdout/stderr straight into
-// .beads/dolt-server.log. There is no streaming goroutine — the child process
+// Background: dolt sql-server writes stdout/stderr straight into dolt-server.log.
+// There is no streaming goroutine — the child process
 // owns the file descriptor directly — so we cannot interpose a size-limiting
 // writer without fundamentally changing how the log is captured. This file
 // implements the simplest thing that works: a startup-time size check that
 // rotates the file if it exceeds a configurable ceiling.
 //
 // Policy:
-//   - At Start() time, if .beads/dolt-server.log is larger than maxLogBytes,
-//     rename it to .beads/dolt-server.log.1 (overwriting any existing .log.1)
+//   - At Start() time, if dolt-server.log is larger than maxLogBytes,
+//     rename it to dolt-server.log.1 (overwriting any existing .log.1)
 //     and allow the subsequent OpenFile to create a fresh empty file.
 //   - The threshold defaults to DefaultMaxLogBytes (50 MB) and may be
 //     overridden with the BEADS_DOLT_LOG_MAX_BYTES env var (bytes).

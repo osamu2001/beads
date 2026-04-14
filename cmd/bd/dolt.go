@@ -1265,7 +1265,7 @@ func setDoltConfig(key, value string, updateConfig bool) {
 		}
 		if lower == "true" {
 			fmt.Println("Shared server mode enabled.")
-			fmt.Println("All projects will use a single Dolt server at ~/.beads/shared-server/.")
+			fmt.Println("All projects will use a single shared Dolt server (runtime root: xdg-state, data root: xdg-data by default).")
 			fmt.Println("Each project's data remains isolated in its own database.")
 		} else {
 			fmt.Println("Shared server mode disabled. Each project will use its own Dolt server.")

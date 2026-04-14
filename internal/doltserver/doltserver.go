@@ -12,7 +12,9 @@
 // config.yaml always use that port instead, with conflict detection via
 // reclaimPort.
 //
-// Server state files (PID, port, log, lock) live in the .beads/ directory.
+// Server state files (PID, port, log, lock) live in the active server directory
+// returned by ResolveServerDir: per-project .beads in embedded mode or shared
+// state directory in shared-server mode.
 package doltserver
 
 import (
@@ -189,8 +191,8 @@ func SharedDoltDir() (string, error) {
 }
 
 // resolveServerDir returns the canonical server directory for dolt state files.
-// In shared server mode, returns ~/.beads/shared-server/ instead of the
-// project's .beads/ directory.
+// In shared-server mode, returns the shared-server state root (or its override)
+// instead of the per-project .beads/ directory.
 func resolveServerDir(beadsDir string) string {
 	if IsSharedServerMode() {
 		dir, err := SharedServerDir()
@@ -212,11 +214,12 @@ func ResolveServerDir(beadsDir string) string {
 
 // ResolveDoltDir returns the dolt data directory for the given beadsDir.
 // It checks the BEADS_DOLT_DATA_DIR env var and metadata.json for a custom
-// dolt_data_dir, falling back to the default .beads/dolt/ path.
+// dolt_data_dir, falling back to the per-project .beads/dolt path (or shared
+// data root in shared-server mode).
 //
 // Note: we check for metadata.json existence before calling configfile.Load
 // to avoid triggering the config.json → metadata.json migration side effect,
-// which would create files in the .beads/ directory unexpectedly.
+// which could create files in project-local runtime directories unexpectedly.
 func ResolveDoltDir(beadsDir string) string {
 	// Shared server mode: use centralized dolt data directory
 	if IsSharedServerMode() {
@@ -247,7 +250,7 @@ func ResolveDoltDir(beadsDir string) string {
 
 // Config holds the server configuration.
 type Config struct {
-	BeadsDir string     // Path to .beads/ directory
+	BeadsDir string     // Path to server state directory (project .beads/ or shared-state root)
 	Port     int        // MySQL protocol port (0 = allocate ephemeral port on Start)
 	Host     string     // Bind address (default: 127.0.0.1)
 	Mode     ServerMode // Server ownership mode (Owned, External, Embedded)
@@ -261,7 +264,7 @@ type State struct {
 	DataDir string `json:"data_dir"`
 }
 
-// file paths within .beads/
+// file paths under the resolved server directory
 func pidPath(beadsDir string) string  { return filepath.Join(beadsDir, PIDFileName) }
 func logPath(beadsDir string) string  { return filepath.Join(beadsDir, "dolt-server.log") }
 func lockPath(beadsDir string) string { return filepath.Join(beadsDir, "dolt-server.lock") }
@@ -375,9 +378,9 @@ func writePortFile(beadsDir string, port int) error {
 	return os.WriteFile(portPath(beadsDir), []byte(strconv.Itoa(port)), 0600)
 }
 
-// EnsurePortFile makes the repo-local port file match the connected server port.
-// This is a best-effort repair path for upgraded repos that are missing
-// .beads/dolt-server.port even though commands can still connect.
+// EnsurePortFile makes the repo-local (or shared-server) port file match the
+// connected server port. This is a best-effort repair path for upgraded repos
+// that are missing dolt-server.port even though commands can still connect.
 func EnsurePortFile(beadsDir string, port int) error {
 	if beadsDir == "" || port <= 0 {
 		return nil
@@ -457,7 +460,7 @@ func DefaultConfig(beadsDir string) *Config {
 		if metaCfg, err := configfile.Load(beadsDir); err == nil && metaCfg != nil {
 			if metaCfg.DoltServerPort > 0 {
 				fmt.Fprintf(os.Stderr, "Warning: dolt_server_port in metadata.json is deprecated (can cause cross-project data leakage).\n")
-				fmt.Fprintf(os.Stderr, "  The port file (.beads/dolt-server.port) is now the primary source.\n")
+				fmt.Fprintf(os.Stderr, "  The port file (dolt-server.port) is now the primary source.\n")
 				fmt.Fprintf(os.Stderr, "  Remove dolt_server_port from .beads/metadata.json to silence this warning.\n")
 				cfg.Port = metaCfg.DoltServerPort
 			}

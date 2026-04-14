@@ -547,7 +547,7 @@ func TestDetectBootstrapAction_ServerModePlanUsesConfiguredDatabaseName(t *testi
 
 	// Create a dolt data dir with a subdirectory so the existing-DB check fires.
 	// Use BEADS_DOLT_DATA_DIR (not shared server mode) so ResolveDoltDir
-	// returns our test directory instead of ~/.beads/shared-server/dolt/.
+	// returns our test directory instead of the shared-server data root.
 	doltDataDir := filepath.Join(tmpDir, "dolt-data")
 	if err := os.MkdirAll(filepath.Join(doltDataDir, "myrig"), 0o750); err != nil {
 		t.Fatal(err)

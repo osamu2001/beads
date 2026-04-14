@@ -643,7 +643,7 @@ func checkSharedServerHealth(beadsDir string) DoctorCheck {
 			Status:   StatusError,
 			Message:  "Cannot access shared server directory",
 			Detail:   err.Error(),
-			Fix:      "Ensure ~/.beads/shared-server/ is writable",
+			Fix:      "Ensure the shared-server state directory is writable",
 			Category: CategoryRuntime,
 		}
 	}
