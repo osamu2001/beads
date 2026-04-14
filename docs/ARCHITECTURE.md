@@ -168,9 +168,10 @@ Each workspace can run its own Dolt server for multi-writer access:
 - Connects to `dolt sql-server` (multi-writer, high-concurrency)
 - PID file at `.beads/dolt-server.pid`
 - Logs at `.beads/dolt-server.log`
-- **Shared server mode** (opt-in): all projects share a single Dolt server at
-  `~/.beads/shared-server/` instead of per-project servers. Enable via
-  `dolt.shared-server: true` in config.yaml or `BEADS_DOLT_SHARED_SERVER=1`.
+- **Shared server mode** (opt-in): all projects share a single Dolt server in the
+  XDG state/data roots (`${XDG_STATE_HOME:-~/.local/state}/beads/shared-server/` for state,
+  `${XDG_DATA_HOME:-~/.local/share}/beads/shared-server/dolt/` for data) instead of per-project servers.
+  Enable via `dolt.shared-server: true` in config.yaml or `BEADS_DOLT_SHARED_SERVER=1`.
 
 **Embedded mode:**
 - Direct database access (single-writer, no server process)

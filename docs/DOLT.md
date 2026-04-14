@@ -339,7 +339,10 @@ dolt:
   # Password: env var or credentials file (see below)
 
   # Shared server mode (GH#2377): all projects share a single Dolt server
-  # at ~/.beads/shared-server/. Each project uses its own database (prefix-based).
+  # in XDG state/data locations by default:
+  # state: ${XDG_STATE_HOME:-~/.local/state}/beads/shared-server/
+  # data: ${XDG_DATA_HOME:-~/.local/share}/beads/shared-server/dolt/
+  # Each project uses its own database (prefix-based).
   # Eliminates port conflicts and reduces resource usage on multi-project machines.
   shared-server: false   # true | false
 
@@ -458,7 +461,9 @@ Server runs on port 3307 (avoids MySQL conflict on 3306).
 ### Shared Server Mode
 
 On machines with multiple beads projects, each project normally starts its own Dolt server.
-Shared server mode runs a single Dolt server at `~/.beads/shared-server/` that serves all projects:
+Shared server mode runs a single Dolt server at
+`${XDG_STATE_HOME:-~/.local/state}/beads/shared-server/` (state) and
+`${XDG_DATA_HOME:-~/.local/share}/beads/shared-server/dolt/` (data) that serves all projects:
 
 ```bash
 # Enable for this project
@@ -477,9 +482,9 @@ bd init --prefix myproject --shared-server
 - Automatic database isolation (each project uses its own database name)
 
 **How it works:**
-- Server state files (PID, port, lock, log) live in `~/.beads/shared-server/`
-- Dolt data directory: `~/.beads/shared-server/dolt/`
-- Each project's database is stored as a subdirectory (e.g., `~/.beads/shared-server/dolt/myproject/`)
+- Server state files (PID, port, lock, log) live in `${XDG_STATE_HOME:-~/.local/state}/beads/shared-server/`
+- Dolt data directory: `${XDG_DATA_HOME:-~/.local/share}/beads/shared-server/dolt/`
+- Each project's database is stored as a subdirectory (e.g., `${XDG_DATA_HOME:-~/.local/share}/beads/shared-server/dolt/myproject/`)
 - The file lock mechanism ensures safe concurrent access from multiple projects
 - Default port is 3308 (not 3307) to avoid conflict with the orchestrator. Override with `BEADS_DOLT_SERVER_PORT` or `dolt.port` in config.yaml
 

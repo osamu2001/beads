@@ -14,6 +14,7 @@ import (
 
 	"github.com/steveyegge/beads/internal/configfile"
 	"github.com/steveyegge/beads/internal/doltserver"
+	"github.com/steveyegge/beads/internal/userpaths"
 
 	"github.com/steveyegge/beads/internal/storage/dolt"
 	"github.com/steveyegge/beads/internal/storage/doltutil"
@@ -636,7 +637,7 @@ func checkSharedServerHealth(beadsDir string) DoctorCheck {
 		}
 	}
 
-	sharedDir, err := doltserver.SharedServerDir()
+	stateDir, err := userpaths.SharedServerStateDir()
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Shared Server",
@@ -648,13 +649,28 @@ func checkSharedServerHealth(beadsDir string) DoctorCheck {
 		}
 	}
 
+	dataDir, err := userpaths.SharedServerDoltDir()
+	if err != nil {
+		return DoctorCheck{
+			Name:     "Shared Server",
+			Status:   StatusError,
+			Message:  "Cannot access shared-server data directory",
+			Detail:   err.Error(),
+			Fix:      "Ensure the shared-server data directory is writable",
+			Category: CategoryRuntime,
+		}
+	}
+
+	sharedDir := stateDir.Path
+	detail := sharedServerDirectoryDetail(stateDir, dataDir)
+
 	state, err := doltserver.IsRunning(sharedDir)
 	if err != nil {
 		return DoctorCheck{
 			Name:     "Shared Server",
 			Status:   StatusWarning,
 			Message:  "Cannot check shared server status",
-			Detail:   err.Error(),
+			Detail:   fmt.Sprintf("%s\n%s", err.Error(), detail),
 			Category: CategoryRuntime,
 		}
 	}
@@ -664,7 +680,7 @@ func checkSharedServerHealth(beadsDir string) DoctorCheck {
 			Name:     "Shared Server",
 			Status:   StatusWarning,
 			Message:  "Shared server not running (will auto-start on next bd command)",
-			Detail:   fmt.Sprintf("Server directory: %s", sharedDir),
+			Detail:   detail,
 			Fix:      "Run 'bd dolt start' to start the shared server",
 			Category: CategoryRuntime,
 		}
@@ -680,7 +696,43 @@ func checkSharedServerHealth(beadsDir string) DoctorCheck {
 		Name:     "Shared Server",
 		Status:   StatusOK,
 		Message:  fmt.Sprintf("Running (PID %d, port %d), database: %s", state.PID, state.Port, dbName),
-		Detail:   fmt.Sprintf("Server directory: %s", sharedDir),
+		Detail:   detail,
 		Category: CategoryRuntime,
+	}
+}
+
+func sharedServerDirectoryDetail(stateDir, dataDir userpaths.ResolvedPath) string {
+	lines := []string{
+		fmt.Sprintf("State directory: %s (%s)", stateDir.Path, sourceLabel(stateDir.Source)),
+		fmt.Sprintf("Data directory: %s (%s)", dataDir.Path, sourceLabel(dataDir.Source)),
+	}
+
+	var fallback []string
+	if stateDir.Source == userpaths.SourceLegacyFallback {
+		fallback = append(fallback, "state")
+	}
+	if dataDir.Source == userpaths.SourceLegacyFallback {
+		fallback = append(fallback, "data")
+	}
+	if len(fallback) > 0 {
+		lines = append(lines, fmt.Sprintf("Legacy fallback active for: %s", strings.Join(fallback, ", ")))
+		lines = append(lines, "Create XDG state/data roots first to switch to XDG defaults.")
+	}
+
+	return strings.Join(lines, "\n")
+}
+
+func sourceLabel(source userpaths.Source) string {
+	switch source {
+	case userpaths.SourceOverride:
+		return "override"
+	case userpaths.SourceXDGExisting:
+		return "xdg-existing"
+	case userpaths.SourceXDGDefault:
+		return "xdg-default"
+	case userpaths.SourceLegacyFallback:
+		return "legacy-fallback"
+	default:
+		return fmt.Sprintf("source=%s", source)
 	}
 }

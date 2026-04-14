@@ -252,7 +252,8 @@ export BEADS_DOLT_SHARED_SERVER=1   # add to shell profile for machine-wide
 # Or per-project: bd dolt set shared-server true
 ```
 
-**Architecture:** By default, bd uses per-project Dolt servers (like LSP/language servers). With shared server mode enabled, a single server at `~/.beads/shared-server/` handles all projects, each using its own database. See [DOLT.md](DOLT.md) for details.
+**Architecture:** By default, bd uses per-project Dolt servers (like LSP/language servers). With shared server mode enabled, a single server at `${XDG_STATE_HOME:-~/.local/state}/beads/shared-server/` (state) and
+`${XDG_DATA_HOME:-~/.local/share}/beads/shared-server/dolt/` (data) handles all projects, each using its own database. See [DOLT.md](DOLT.md) for details.
 
 ### What happens if two agents work on the same issue?
 

@@ -46,7 +46,7 @@ Tool-level settings you can configure:
 | `backup.interval` | - | `BD_BACKUP_INTERVAL` | `15m` | Minimum time between auto-backups |
 | `dolt.auto-push` | - | `BD_DOLT_AUTO_PUSH` | (auto) | Auto-push to Dolt remote after writes (auto-enabled when origin exists) |
 | `dolt.auto-push-interval` | - | `BD_DOLT_AUTO_PUSH_INTERVAL` | `5m` | Minimum time between auto-pushes |
-| `dolt.shared-server` | `--shared-server` | `BEADS_DOLT_SHARED_SERVER` | `false` | Share a single Dolt server across all projects at `~/.beads/shared-server/` |
+| `dolt.shared-server` | `--shared-server` | `BEADS_DOLT_SHARED_SERVER` | `false` | Share a single Dolt server across all projects (state: `${XDG_STATE_HOME:-~/.local/state}/beads/shared-server`, data: `${XDG_DATA_HOME:-~/.local/share}/beads/shared-server/dolt`) |
 | `dolt.idle-timeout` | - | - | `30m` | Idle auto-stop timeout (`"0"` disables) |
 | `db` | `--db` | `BD_DB` | (auto-discover) | Database path |
 | `actor` | `--actor` | `BEADS_ACTOR` | `git config user.name` | Actor name for audit trail (see below) |

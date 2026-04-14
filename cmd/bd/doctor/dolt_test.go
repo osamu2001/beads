@@ -7,6 +7,65 @@ import (
 	"testing"
 )
 
+func TestSharedServerDirectoryDetail(t *testing.T) {
+	tmpDir := t.TempDir()
+	home := filepath.Join(tmpDir, "home")
+	if err := os.MkdirAll(home, 0o755); err != nil {
+		t.Fatalf("failed to create home: %v", err)
+	}
+
+	// Set explicit XDG roots so the summary can reference both resolved paths.
+	xdgData := filepath.Join(tmpDir, "xdg-data")
+	xdgState := filepath.Join(tmpDir, "xdg-state")
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_DATA_HOME", xdgData)
+	t.Setenv("XDG_STATE_HOME", xdgState)
+	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
+
+	t.Setenv("BEADS_SHARED_SERVER_DIR", "")
+
+	stateLegacy := filepath.Join(home, ".beads", "shared-server")
+	dataLegacy := filepath.Join(home, ".beads", "shared-server", "dolt")
+	if err := os.MkdirAll(filepath.Dir(filepath.Join(stateLegacy, "marker")), 0o755); err != nil {
+		t.Fatalf("failed to create legacy marker dir: %v", err)
+	}
+	if err := os.MkdirAll(dataLegacy, 0o755); err != nil {
+		t.Fatalf("failed to create legacy dolt dir: %v", err)
+	}
+
+	// Create legacy path marker so legacy fallback triggers (XDG paths are absent).
+	markerPath := filepath.Join(stateLegacy, "marker")
+	if err := os.WriteFile(markerPath, []byte("legacy"), 0o644); err != nil {
+		t.Fatalf("failed to write marker: %v", err)
+	}
+
+	stateDetail := checkSharedServerHealth(".")
+	// In legacy fallback mode we should explicitly surface that state/data are migrated
+	// from legacy roots.
+	if stateDetail.Status != StatusWarning {
+		t.Fatalf("expected warning status when shared server is not running, got %s", stateDetail.Status)
+	}
+	if stateDetail.Message != "Shared server not running (will auto-start on next bd command)" {
+		t.Fatalf("unexpected shared server message: %q", stateDetail.Message)
+	}
+	if !strings.Contains(stateDetail.Detail, "Legacy fallback active") {
+		t.Fatalf("expected legacy fallback hint in detail, got %q", stateDetail.Detail)
+	}
+	if !strings.Contains(stateDetail.Detail, "State directory:") || !strings.Contains(stateDetail.Detail, "Data directory:") {
+		t.Fatalf("expected shared server state/data details, got %q", stateDetail.Detail)
+	}
+
+	t.Setenv("BEADS_SHARED_SERVER_DIR", filepath.Join(tmpDir, "explicit-server"))
+	stateDetail = checkSharedServerHealth(".")
+	if !strings.Contains(stateDetail.Detail, "override") {
+		t.Fatalf("expected override source label when explicit dir is set, got %q", stateDetail.Detail)
+	}
+	if !strings.Contains(stateDetail.Detail, filepath.Join(tmpDir, "explicit-server")) {
+		t.Fatalf("expected explicit override in detail, got %q", stateDetail.Detail)
+	}
+}
+
 // TestRunDoltHealthChecks_NonDoltBackend was removed: SQLite backend no longer
 // exists. GetBackend() always returns "dolt" after the dolt-native cleanup.
 // (bd-yqpwy)

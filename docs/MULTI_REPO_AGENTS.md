@@ -35,7 +35,8 @@ Dolt Databases (complete isolation)
 ```
 
 With **shared server mode** enabled (`BEADS_DOLT_SHARED_SERVER=1`), all projects
-use a single Dolt server at `~/.beads/shared-server/`. Database isolation is
+  use a single Dolt server at `${XDG_STATE_HOME:-~/.local/state}/beads/shared-server/` (state)
+  and `${XDG_DATA_HOME:-~/.local/share}/beads/shared-server/dolt/` (data). Database isolation is
 maintained via per-project database names (based on project prefix).
 
 ### Multi-Repo Config Options
