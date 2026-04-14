@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/steveyegge/beads/internal/userpaths"
 )
 
 func TestSharedServerDirectoryDetail(t *testing.T) {
@@ -63,6 +65,87 @@ func TestSharedServerDirectoryDetail(t *testing.T) {
 	}
 	if !strings.Contains(stateDetail.Detail, filepath.Join(tmpDir, "explicit-server")) {
 		t.Fatalf("expected explicit override in detail, got %q", stateDetail.Detail)
+	}
+}
+
+func TestSharedServerDirectoryDetail_ResolvedSources(t *testing.T) {
+	statePath := filepath.Join(t.TempDir(), "state")
+	dataPath := filepath.Join(t.TempDir(), "data")
+
+	tests := []struct {
+		name     string
+		state    userpaths.ResolvedPath
+		data     userpaths.ResolvedPath
+		hasLines []string
+		hasNo    []string
+	}{
+		{
+			name: "xdg existing and xdg default",
+			state: userpaths.ResolvedPath{
+				Path:   statePath,
+				Source: userpaths.SourceXDGExisting,
+			},
+			data: userpaths.ResolvedPath{
+				Path:   dataPath,
+				Source: userpaths.SourceXDGDefault,
+			},
+			hasLines: []string{
+				"State directory: " + statePath + " (xdg-existing)",
+				"Data directory: " + dataPath + " (xdg-default)",
+			},
+			hasNo: []string{"Legacy fallback active"},
+		},
+		{
+			name: "legacy fallback includes state",
+			state: userpaths.ResolvedPath{
+				Path:   statePath,
+				Source: userpaths.SourceLegacyFallback,
+			},
+			data: userpaths.ResolvedPath{
+				Path:   dataPath,
+				Source: userpaths.SourceXDGExisting,
+			},
+			hasLines: []string{
+				"State directory: " + statePath + " (legacy-fallback)",
+				"Data directory: " + dataPath + " (xdg-existing)",
+				"Legacy fallback active for: state",
+				"Create XDG state/data roots first to switch to XDG defaults.",
+			},
+		},
+		{
+			name: "override takes precedence for both paths",
+			state: userpaths.ResolvedPath{
+				Path:   statePath,
+				Source: userpaths.SourceOverride,
+			},
+			data: userpaths.ResolvedPath{
+				Path:   dataPath,
+				Source: userpaths.SourceOverride,
+			},
+			hasLines: []string{
+				"State directory: " + statePath + " (override)",
+				"Data directory: " + dataPath + " (override)",
+			},
+			hasNo: []string{"Legacy fallback active", "Create XDG state/data roots first to switch to XDG defaults."},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			detail := sharedServerDirectoryDetail(tt.state, tt.data)
+
+			for _, expected := range tt.hasLines {
+				if !strings.Contains(detail, expected) {
+					t.Fatalf("expected detail to contain %q, got: %q", expected, detail)
+				}
+			}
+
+			for _, unexpected := range tt.hasNo {
+				if strings.Contains(detail, unexpected) {
+					t.Fatalf("expected detail not to contain %q, got: %q", unexpected, detail)
+				}
+			}
+		})
 	}
 }
 
