@@ -141,3 +141,28 @@ func TestContributorPlanningRepo_DefaultsToXDGDataRoot(t *testing.T) {
 		t.Fatalf("Source = %q, want %q", resolved.Source, SourceXDGDefault)
 	}
 }
+
+func TestContributorPlanningRepo_FallsBackToLegacyWhenOnlyLegacyExists(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, "xdg-data"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "xdg-state"))
+
+	legacy := filepath.Join(home, ".beads-planning")
+	if err := os.MkdirAll(legacy, 0o755); err != nil {
+		t.Fatalf("MkdirAll legacy: %v", err)
+	}
+
+	resolved, err := ContributorPlanningRepo()
+	if err != nil {
+		t.Fatalf("ContributorPlanningRepo: %v", err)
+	}
+
+	if resolved.Path != legacy {
+		t.Fatalf("Path = %q, want %q", resolved.Path, legacy)
+	}
+	if resolved.Source != SourceLegacyFallback {
+		t.Fatalf("Source = %q, want %q", resolved.Source, SourceLegacyFallback)
+	}
+}
