@@ -31,7 +31,7 @@ The Rig → Cook → Run lifecycle:
 
 Search paths (in order):
   1. <resolved-beads-dir>/formulas/ (active project)
-  2. ~/.beads/formulas/ (user)
+  2. <XDG data root>/beads/formulas/ (user)
   3. $GT_ROOT/.beads/formulas/ (orchestrator, if GT_ROOT set)
 
 Commands:
@@ -47,7 +47,7 @@ var formulaListCmd = &cobra.Command{
 
 Search paths (in order of priority):
   1. <resolved-beads-dir>/formulas/ (active project - highest priority)
-  2. ~/.beads/formulas/ (user)
+  2. <XDG data root>/beads/formulas/ (user)
   3. $GT_ROOT/.beads/formulas/ (orchestrator, if GT_ROOT set)
 
 Formulas in earlier paths shadow those with the same name in later paths.

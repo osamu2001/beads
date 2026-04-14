@@ -18,7 +18,7 @@ attempting to spawn work from a formula.
 
 Formula search paths (checked in order):
   1. <resolved-beads-dir>/formulas/ (active project)
-  2. ~/.beads/formulas/ (user level)
+  2. <XDG data root>/beads/formulas/ (user level)
   3. $GT_ROOT/.beads/formulas/ (orchestrator level, if GT_ROOT set)
 
 Examples:

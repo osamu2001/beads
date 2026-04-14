@@ -9,7 +9,7 @@
 // Molecules are loaded from multiple locations in priority order (later overrides earlier):
 //  1. Built-in molecules (shipped with bd binary)
 //  2. Town-level: $GT_ROOT/.beads/molecules.jsonl (if orchestrator detected via GT_ROOT)
-//  3. User-level: ~/.beads/molecules.jsonl
+//  3. User-level: <XDG data root>/beads/molecules.jsonl
 //  4. Project-level: .beads/molecules.jsonl in the current project
 //
 // # Key Properties
@@ -91,7 +91,7 @@ func (l *Loader) LoadAll(ctx context.Context, beadsDir string) (*LoadResult, err
 		}
 	}
 
-	// 3. Load user-level molecules (~/.beads/molecules.jsonl)
+	// 3. Load user-level molecules (<XDG data root>/beads/molecules.jsonl)
 	userPath := getUserMoleculesPath()
 	if userPath != "" && userPath != townPath {
 		if molecules, err := loadMoleculesFromFile(userPath); err == nil && len(molecules) > 0 {
@@ -224,7 +224,7 @@ func getTownMoleculesPath() string {
 }
 
 // getUserMoleculesPath returns the path to user-level molecules.jsonl
-// (~/.beads/molecules.jsonl).
+// (<XDG data root>/beads/molecules.jsonl, with legacy fallback).
 func getUserMoleculesPath() string {
 	resolved, err := userpaths.UserMoleculesPath()
 	if err != nil {
