@@ -14,7 +14,7 @@ import (
 
 // getRoutingConfigValue resolves routing config from YAML/env first, then DB config.
 // Only uses the YAML value if it was explicitly set (not a Viper default), so that
-// DB-stored values aren't shadowed by defaults like "~/.beads-planning".
+// DB-stored values aren't shadowed by routing defaults.
 func getRoutingConfigValue(ctx context.Context, store storage.DoltStorage, key string) string {
 	// Only trust YAML/env values that were explicitly set, not Viper defaults.
 	if src := config.GetValueSource(key); src != config.SourceDefault {

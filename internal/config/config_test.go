@@ -1018,10 +1018,15 @@ external_projects:
 
 func TestRoutingModeDefaultIsEmpty(t *testing.T) {
 	// GH#1165: routing.mode must default to empty (disabled)
-	// to prevent unexpected auto-routing to ~/.beads-planning
+	// to prevent unexpected auto-routing to the contributor planning repo
 	// Isolate from environment variables
 	restore := envSnapshot(t)
 	defer restore()
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, "xdg-data"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "xdg-state"))
 
 	// Initialize config
 	if err := Initialize(); err != nil {
@@ -1040,8 +1045,9 @@ func TestRoutingModeDefaultIsEmpty(t *testing.T) {
 	if got := GetString("routing.maintainer"); got != "." {
 		t.Errorf("GetString(routing.maintainer) = %q, want \".\"", got)
 	}
-	if got := GetString("routing.contributor"); got != "~/.beads-planning" {
-		t.Errorf("GetString(routing.contributor) = %q, want \"~/.beads-planning\"", got)
+	wantContributor := filepath.Join(home, "xdg-data", "beads", "planning")
+	if got := GetString("routing.contributor"); got != wantContributor {
+		t.Errorf("GetString(routing.contributor) = %q, want %q", got, wantContributor)
 	}
 }
 

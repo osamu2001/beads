@@ -12,6 +12,7 @@ import (
 	"github.com/steveyegge/beads/internal/config"
 	"github.com/steveyegge/beads/internal/storage"
 	"github.com/steveyegge/beads/internal/ui"
+	"github.com/steveyegge/beads/internal/userpaths"
 )
 
 // runContributorWizard guides the user through OSS contributor setup
@@ -110,16 +111,17 @@ func runContributorWizard(ctx context.Context, store storage.DoltStorage) error 
 	// Step 3: Configure planning repository
 	fmt.Printf("\n%s Setting up planning repository...\n", ui.RenderAccent("▶"))
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
-	}
-
 	// Use BEADS_DIR as default if set (user explicitly set it and continued past warning)
-	// Otherwise fall back to ~/.beads-planning
-	defaultPlanningRepo := filepath.Join(homeDir, ".beads-planning")
+	// Otherwise use the resolved contributor planning repo path.
+	var defaultPlanningRepo string
 	if envBeadsDir := os.Getenv("BEADS_DIR"); envBeadsDir != "" {
 		defaultPlanningRepo = envBeadsDir
+	} else {
+		resolved, err := userpaths.ContributorPlanningRepo()
+		if err != nil {
+			return fmt.Errorf("failed to resolve contributor planning repo: %w", err)
+		}
+		defaultPlanningRepo = resolved.Path
 	}
 
 	fmt.Printf("\nWhere should contributor planning issues be stored?\n")
@@ -141,6 +143,10 @@ func runContributorWizard(ctx context.Context, store storage.DoltStorage) error 
 
 	// Expand ~ if present
 	if strings.HasPrefix(planningPath, "~/") {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("failed to expand planning repo path: %w", err)
+		}
 		planningPath = filepath.Join(homeDir, planningPath[2:])
 	}
 

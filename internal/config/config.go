@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/steveyegge/beads/internal/debug"
+	"github.com/steveyegge/beads/internal/userpaths"
 	"gopkg.in/yaml.v3"
 )
 
@@ -138,7 +139,7 @@ func Initialize() error {
 	v.SetDefault("routing.mode", "")
 	v.SetDefault("routing.default", ".")
 	v.SetDefault("routing.maintainer", ".")
-	v.SetDefault("routing.contributor", "~/.beads-planning")
+	v.SetDefault("routing.contributor", defaultContributorPlanningRepo())
 
 	// Sync configuration defaults (bd-4u8)
 	v.SetDefault("sync.require_confirmation_on_mass_delete", false)
@@ -248,6 +249,15 @@ func Initialize() error {
 	}
 
 	return nil
+}
+
+func defaultContributorPlanningRepo() string {
+	resolved, err := userpaths.ContributorPlanningRepo()
+	if err == nil && strings.TrimSpace(resolved.Path) != "" {
+		return resolved.Path
+	}
+	debug.Logf("DEBUG: failed to resolve contributor planning repo default: %v\n", err)
+	return "~/.beads-planning"
 }
 
 // ResetForTesting clears the config state, allowing Initialize() to be called again.

@@ -53,22 +53,24 @@ func TestContributorRoutingTracer(t *testing.T) {
 	})
 
 	t.Run("DetermineTargetRepo_contributor_routes_to_planning", func(t *testing.T) {
+		planningRepo := filepath.Join(t.TempDir(), "xdg-data", "beads", "planning")
 		config := &routing.RoutingConfig{
 			Mode:            "auto",
-			ContributorRepo: "~/.beads-planning",
+			ContributorRepo: planningRepo,
 		}
 
 		got := routing.DetermineTargetRepo(config, routing.Contributor, ".")
-		if got != "~/.beads-planning" {
-			t.Errorf("DetermineTargetRepo() = %q, want %q", got, "~/.beads-planning")
+		if got != planningRepo {
+			t.Errorf("DetermineTargetRepo() = %q, want %q", got, planningRepo)
 		}
 	})
 
 	t.Run("DetermineTargetRepo_maintainer_stays_local", func(t *testing.T) {
+		planningRepo := filepath.Join(t.TempDir(), "xdg-data", "beads", "planning")
 		config := &routing.RoutingConfig{
 			Mode:            "auto",
 			MaintainerRepo:  ".",
-			ContributorRepo: "~/.beads-planning",
+			ContributorRepo: planningRepo,
 		}
 
 		got := routing.DetermineTargetRepo(config, routing.Maintainer, ".")

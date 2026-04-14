@@ -9,7 +9,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/steveyegge/beads/internal/routing"
@@ -65,6 +64,7 @@ func TestRoutingIntegration(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create temp directory
 			tmpDir := t.TempDir()
+			planningRepo := filepath.Join(tmpDir, "xdg-data", "beads", "planning")
 
 			// Set up git
 			tt.setupGit(t, tmpDir)
@@ -82,9 +82,9 @@ func TestRoutingIntegration(t *testing.T) {
 			// Test routing configuration
 			routingCfg := &routing.RoutingConfig{
 				Mode:             "auto",
-				DefaultRepo:      "~/.beads-planning",
+				DefaultRepo:      planningRepo,
 				MaintainerRepo:   ".",
-				ContributorRepo:  "~/.beads-planning",
+				ContributorRepo:  planningRepo,
 				ExplicitOverride: "",
 			}
 
@@ -95,8 +95,8 @@ func TestRoutingIntegration(t *testing.T) {
 			}
 
 			// For contributor, verify it routes to planning repo
-			if role == routing.Contributor && !strings.Contains(targetRepo, "beads-planning") {
-				t.Errorf("contributor should route to planning repo, got %q", targetRepo)
+			if role == routing.Contributor && targetRepo != planningRepo {
+				t.Errorf("contributor should route to planning repo, got %q want %q", targetRepo, planningRepo)
 			}
 		})
 	}
@@ -118,9 +118,9 @@ func TestRoutingWithExplicitOverride(t *testing.T) {
 	// Even though we're a contributor, --repo flag should override
 	routingCfg := &routing.RoutingConfig{
 		Mode:             "auto",
-		DefaultRepo:      "~/.beads-planning",
+		DefaultRepo:      filepath.Join(tmpDir, "xdg-data", "beads", "planning"),
 		MaintainerRepo:   ".",
-		ContributorRepo:  "~/.beads-planning",
+		ContributorRepo:  filepath.Join(tmpDir, "xdg-data", "beads", "planning"),
 		ExplicitOverride: "/custom/repo/path",
 	}
 

@@ -902,6 +902,10 @@ func TestInitContributorSetsBeadsRoleContributor(t *testing.T) {
 	// Keep test isolated from the real home/planning repo.
 	testHome := t.TempDir()
 	t.Setenv("HOME", testHome)
+	t.Setenv("USERPROFILE", testHome)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(testHome, "xdg-data"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(testHome, "xdg-state"))
+	expectedPlanningRepo := filepath.Join(testHome, "xdg-data", "beads", "planning")
 
 	// Configure remotes so contributor wizard doesn't ask the "continue anyway" prompt.
 	cmd := exec.Command("git", "remote", "add", "origin", "git@github.com:osamu2001/zmx.git")
@@ -917,7 +921,7 @@ func TestInitContributorSetsBeadsRoleContributor(t *testing.T) {
 
 	// Wizard answers:
 	// 1) "Do you want to use a separate planning repo anyway? [Y/n]" -> Enter (default yes)
-	// 2) "Planning repo path [press Enter for default]" -> Enter (default ~/.beads-planning)
+	// 2) "Planning repo path [press Enter for default]" -> Enter (default XDG planning repo)
 	r, w, err := os.Pipe()
 	if err != nil {
 		t.Fatalf("failed to create stdin pipe: %v", err)
@@ -940,6 +944,24 @@ func TestInitContributorSetsBeadsRoleContributor(t *testing.T) {
 	}
 	if role != "contributor" {
 		t.Fatalf("beads.role = %q, want %q", role, "contributor")
+	}
+
+	if _, err := os.Stat(filepath.Join(expectedPlanningRepo, ".beads")); err != nil {
+		t.Fatalf("expected planning repo at %s: %v", expectedPlanningRepo, err)
+	}
+
+	projectStore, err := openExistingTestDB(t, filepath.Join(tmpDir, ".beads", "dolt"))
+	if err != nil {
+		t.Fatalf("failed to open project database: %v", err)
+	}
+	defer projectStore.Close()
+
+	planningRepo, err := projectStore.GetConfig(context.Background(), "routing.contributor")
+	if err != nil {
+		t.Fatalf("failed to get routing.contributor: %v", err)
+	}
+	if planningRepo != expectedPlanningRepo {
+		t.Fatalf("routing.contributor = %q, want %q", planningRepo, expectedPlanningRepo)
 	}
 }
 
