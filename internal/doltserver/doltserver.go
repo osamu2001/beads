@@ -35,6 +35,7 @@ import (
 	"github.com/steveyegge/beads/internal/debug"
 	"github.com/steveyegge/beads/internal/lockfile"
 	"github.com/steveyegge/beads/internal/storage/doltutil"
+	"github.com/steveyegge/beads/internal/userpaths"
 )
 
 // ErrServerNotRunning is returned by Stop when the Dolt server is not running.
@@ -157,34 +158,30 @@ func readyTimeout() time.Duration {
 	return time.Duration(secs) * time.Second
 }
 
-// SharedServerDir returns the directory for shared server state files.
-// Returns ~/.beads/shared-server/ (created on first use).
-// Override with BEADS_SHARED_SERVER_DIR env var for testing or custom layouts.
+// SharedServerDir returns the directory for shared server runtime state files.
+// Defaults to the XDG state root, with legacy ~/.beads fallback and
+// BEADS_SHARED_SERVER_DIR preserved as a combined-root override.
 func SharedServerDir() (string, error) {
-	var dir string
-	if d := os.Getenv("BEADS_SHARED_SERVER_DIR"); d != "" {
-		dir = d
-	} else {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return "", fmt.Errorf("cannot determine home directory: %w", err)
-		}
-		dir = filepath.Join(home, ".beads", "shared-server")
+	resolved, err := userpaths.SharedServerStateDir()
+	if err != nil {
+		return "", err
 	}
+	dir := resolved.Path
 	if err := os.MkdirAll(dir, config.BeadsDirPerm); err != nil {
 		return "", fmt.Errorf("cannot create shared server directory %s: %w", dir, err)
 	}
 	return dir, nil
 }
 
-// SharedDoltDir returns the dolt data directory for the shared server.
-// Returns ~/.beads/shared-server/dolt/ (created on first use).
+// SharedDoltDir returns the shared-server Dolt data directory.
+// Defaults to the XDG data root, with legacy ~/.beads fallback and
+// BEADS_SHARED_SERVER_DIR preserved as a combined-root override.
 func SharedDoltDir() (string, error) {
-	serverDir, err := SharedServerDir()
+	resolved, err := userpaths.SharedServerDoltDir()
 	if err != nil {
 		return "", err
 	}
-	dir := filepath.Join(serverDir, "dolt")
+	dir := resolved.Path
 	if err := os.MkdirAll(dir, config.BeadsDirPerm); err != nil {
 		return "", fmt.Errorf("cannot create shared dolt directory %s: %w", dir, err)
 	}

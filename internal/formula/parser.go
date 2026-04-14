@@ -10,6 +10,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/steveyegge/beads/internal/beads"
+	"github.com/steveyegge/beads/internal/userpaths"
 )
 
 // Formula file extensions. TOML is preferred, JSON is legacy fallback.
@@ -84,8 +85,8 @@ func DefaultSearchPaths() []string {
 	}
 
 	// User-level formulas
-	if home, err := os.UserHomeDir(); err == nil {
-		addPath(filepath.Join(home, ".beads", "formulas"))
+	if resolved, err := userpaths.UserFormulasDir(); err == nil {
+		addPath(resolved.Path)
 	}
 
 	// Orchestrator formulas (via GT_ROOT)

@@ -25,6 +25,20 @@ func TestMain(m *testing.M) {
 func testMainInner(m *testing.M) int {
 	origWD, _ := os.Getwd()
 
+	// Isolate the suite from operator shell shared-server env. Many cmd/bd
+	// tests assert standalone defaults and opt into shared/server mode
+	// explicitly with t.Setenv or subprocess env overrides.
+	for _, key := range []string{
+		"BEADS_DOLT_SHARED_SERVER",
+		"BEADS_DOLT_SERVER_MODE",
+		"BEADS_SHARED_SERVER_DIR",
+		"BEADS_DOLT_DATA_DIR",
+		"BEADS_DOLT_SERVER_PORT",
+		"BEADS_DOLT_PORT",
+	} {
+		_ = os.Unsetenv(key)
+	}
+
 	// Isolate config discovery from the repo's tracked `.beads/config.yaml`.
 	// Many tests expect default config values; running from within this repo would
 	// cause config.Initialize() to walk up from CWD and load `.beads/config.yaml`,

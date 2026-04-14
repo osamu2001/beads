@@ -4,30 +4,54 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/steveyegge/beads/internal/configfile"
 )
 
+var (
+	explicitDBTestBDPath string
+	explicitDBTestBDOnce sync.Once
+	explicitDBTestBDErr  error
+)
+
 func buildBDUnderTest(t *testing.T) string {
 	t.Helper()
 
-	binName := "bd"
-	if runtime.GOOS == "windows" {
-		binName = "bd.exe"
+	explicitDBTestBDOnce.Do(func() {
+		binName := "bd"
+		if runtime.GOOS == "windows" {
+			binName = "bd.exe"
+		}
+		buildDir, err := os.MkdirTemp("", "bd-explicit-db-*")
+		if err != nil {
+			explicitDBTestBDErr = err
+			return
+		}
+		binPath := filepath.Join(buildDir, binName)
+		buildCmd := exec.Command("go", "build", "-o", binPath, ".")
+		if out, err := buildCmd.CombinedOutput(); err != nil {
+			if len(out) > 0 {
+				explicitDBTestBDErr = fmt.Errorf("%w\n%s", err, out)
+				return
+			}
+			explicitDBTestBDErr = err
+			return
+		}
+		explicitDBTestBDPath = binPath
+	})
+	if explicitDBTestBDErr != nil {
+		t.Fatalf("go build failed: %v", explicitDBTestBDErr)
 	}
-	binPath := filepath.Join(t.TempDir(), binName)
-	buildCmd := exec.Command("go", "build", "-o", binPath, ".")
-	if out, err := buildCmd.CombinedOutput(); err != nil {
-		t.Fatalf("go build failed: %v\n%s", err, out)
-	}
-	return binPath
+	return explicitDBTestBDPath
 }
 
 func initGitRepo(t *testing.T, dir string) {

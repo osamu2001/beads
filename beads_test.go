@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/steveyegge/beads"
+	"github.com/steveyegge/beads/internal/config"
 	"github.com/steveyegge/beads/internal/testutil"
 )
 
@@ -156,6 +157,9 @@ func TestOpenFromConfig_ServerModeFailsWithoutServer(t *testing.T) {
 		os.Unsetenv("BEADS_TEST_MODE")
 		t.Cleanup(func() { os.Setenv("BEADS_TEST_MODE", prev) })
 	}
+	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	config.ResetForTesting()
+	t.Cleanup(config.ResetForTesting)
 
 	tmpDir := t.TempDir()
 	beadsDir := filepath.Join(tmpDir, ".beads")
@@ -245,6 +249,9 @@ func TestOpenBestAvailable_ServerMode_FailsWithoutServer(t *testing.T) {
 		os.Unsetenv("BEADS_TEST_MODE")
 		t.Cleanup(func() { os.Setenv("BEADS_TEST_MODE", prev) })
 	}
+	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	config.ResetForTesting()
+	t.Cleanup(config.ResetForTesting)
 
 	tmpDir := t.TempDir()
 	beadsDir := filepath.Join(tmpDir, ".beads")

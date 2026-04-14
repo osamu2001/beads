@@ -236,6 +236,9 @@ func TestDefaultConfig(t *testing.T) {
 		// Clear env vars to test pure standalone behavior
 		t.Setenv("GT_ROOT", "")
 		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+		config.ResetForTesting()
+		t.Cleanup(config.ResetForTesting)
 
 		freshDir := t.TempDir()
 		cfg := DefaultConfig(freshDir)
@@ -256,6 +259,8 @@ func TestDefaultConfig(t *testing.T) {
 		// (provided no env var or metadata.json port is set).
 		t.Setenv("GT_ROOT", "")
 		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+		config.ResetForTesting()
 
 		// Create a temp dir with config.yaml containing dolt.port
 		configDir := t.TempDir()
@@ -283,6 +288,9 @@ func TestDefaultConfig(t *testing.T) {
 		// DefaultConfig should return port 0 (ephemeral allocation on Start).
 		t.Setenv("GT_ROOT", "")
 		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+		config.ResetForTesting()
+		t.Cleanup(config.ResetForTesting)
 
 		freshDir := t.TempDir()
 		cfg := DefaultConfig(freshDir)
@@ -297,6 +305,9 @@ func TestDefaultConfig(t *testing.T) {
 		// use it.
 		t.Setenv("GT_ROOT", "")
 		t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+		t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+		config.ResetForTesting()
+		t.Cleanup(config.ResetForTesting)
 
 		freshDir := t.TempDir()
 		if err := writePortFile(freshDir, 14000); err != nil {
@@ -691,6 +702,9 @@ func TestStopNotRunningWithCleanupError(t *testing.T) {
 
 func TestKillStaleServersPreservesOtherRepoServers(t *testing.T) {
 	t.Setenv("BEADS_DOLT_AUTO_START", "") // ensure auto-start guard doesn't short-circuit
+	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	config.ResetForTesting()
+	t.Cleanup(config.ResetForTesting)
 	dir := t.TempDir()
 	canonicalPID := 111
 	sameRepoOrphanPID := 222
@@ -980,6 +994,9 @@ func TestDefaultConfigReturnsZeroForStandalone(t *testing.T) {
 	// giving each project a unique port without hash collisions (GH#2098).
 	t.Setenv("GT_ROOT", "")
 	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	config.ResetForTesting()
+	t.Cleanup(config.ResetForTesting)
 
 	dir := t.TempDir()
 	cfg := DefaultConfig(dir)
@@ -1003,6 +1020,9 @@ func TestDefaultConfigPortFileTakesPrecedence(t *testing.T) {
 	// Port file (written by Start) should take precedence over ephemeral.
 	t.Setenv("GT_ROOT", "")
 	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
+	t.Setenv("BEADS_DOLT_SHARED_SERVER", "")
+	config.ResetForTesting()
+	t.Cleanup(config.ResetForTesting)
 
 	dir := t.TempDir()
 	if err := writePortFile(dir, 14567); err != nil {
@@ -1233,12 +1253,17 @@ func TestIsSharedServerMode_EnvVar0(t *testing.T) {
 }
 
 func TestSharedServerDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, "xdg-data"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "xdg-state"))
+	t.Setenv("BEADS_SHARED_SERVER_DIR", "")
 	dir, err := SharedServerDir()
 	if err != nil {
 		t.Fatalf("SharedServerDir: %v", err)
 	}
-	home, _ := os.UserHomeDir()
-	expected := filepath.Join(home, ".beads", "shared-server")
+	expected := filepath.Join(home, "xdg-state", "beads", "shared-server")
 	if dir != expected {
 		t.Errorf("SharedServerDir = %q, want %q", dir, expected)
 	}
@@ -1249,12 +1274,17 @@ func TestSharedServerDir(t *testing.T) {
 }
 
 func TestSharedDoltDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, "xdg-data"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "xdg-state"))
+	t.Setenv("BEADS_SHARED_SERVER_DIR", "")
 	dir, err := SharedDoltDir()
 	if err != nil {
 		t.Fatalf("SharedDoltDir: %v", err)
 	}
-	home, _ := os.UserHomeDir()
-	expected := filepath.Join(home, ".beads", "shared-server", "dolt")
+	expected := filepath.Join(home, "xdg-data", "beads", "shared-server", "dolt")
 	if dir != expected {
 		t.Errorf("SharedDoltDir = %q, want %q", dir, expected)
 	}
@@ -1299,10 +1329,14 @@ func TestResolveServerDir_PerProject(t *testing.T) {
 }
 
 func TestResolveServerDir_SharedMode(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, "xdg-data"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "xdg-state"))
 	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
 	result := resolveServerDir("/some/project/.beads")
-	home, _ := os.UserHomeDir()
-	expected := filepath.Join(home, ".beads", "shared-server")
+	expected := filepath.Join(home, "xdg-state", "beads", "shared-server")
 	if result != expected {
 		t.Errorf("resolveServerDir with shared mode = %q, want %q", result, expected)
 	}
@@ -1337,11 +1371,15 @@ func TestDefaultSharedServerPort_DiffersFromDefault(t *testing.T) {
 }
 
 func TestDefaultConfig_SharedModeBeadsDir(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	t.Setenv("XDG_DATA_HOME", filepath.Join(home, "xdg-data"))
+	t.Setenv("XDG_STATE_HOME", filepath.Join(home, "xdg-state"))
 	t.Setenv("BEADS_DOLT_SHARED_SERVER", "1")
 	t.Setenv("BEADS_DOLT_SERVER_PORT", "")
 	cfg := DefaultConfig("/some/project/.beads")
-	home, _ := os.UserHomeDir()
-	expected := filepath.Join(home, ".beads", "shared-server")
+	expected := filepath.Join(home, "xdg-state", "beads", "shared-server")
 	if cfg.BeadsDir != expected {
 		t.Errorf("DefaultConfig.BeadsDir = %q, want %q", cfg.BeadsDir, expected)
 	}

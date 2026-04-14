@@ -900,13 +900,13 @@ func TestDetectBootstrapAction_SharedServerEnvUsesSharedPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Override HOME so SharedDoltDir() resolves to our temp directory
-	// instead of the real ~/.beads/shared-server/dolt/.
-	t.Setenv("HOME", tmpDir)
+	// Route XDG data to the temp workspace so SharedDoltDir() resolves there
+	// instead of the operator's real shared-server Dolt root.
+	t.Setenv("XDG_DATA_HOME", filepath.Join(tmpDir, "xdg-data"))
 
 	// Create a database directory at the shared-server location.
-	// SharedDoltDir() returns $HOME/.beads/shared-server/dolt/.
-	sharedDoltDir := filepath.Join(tmpDir, ".beads", "shared-server", "dolt")
+	// SharedDoltDir() now defaults to $XDG_DATA_HOME/beads/shared-server/dolt.
+	sharedDoltDir := filepath.Join(tmpDir, "xdg-data", "beads", "shared-server", "dolt")
 	if err := os.MkdirAll(filepath.Join(sharedDoltDir, "beads"), 0o750); err != nil {
 		t.Fatal(err)
 	}

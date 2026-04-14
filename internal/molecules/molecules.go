@@ -32,6 +32,7 @@ import (
 	"github.com/steveyegge/beads/internal/debug"
 	"github.com/steveyegge/beads/internal/storage"
 	"github.com/steveyegge/beads/internal/types"
+	"github.com/steveyegge/beads/internal/userpaths"
 )
 
 // MoleculeFileName is the canonical name for molecule catalog files.
@@ -225,14 +226,12 @@ func getTownMoleculesPath() string {
 // getUserMoleculesPath returns the path to user-level molecules.jsonl
 // (~/.beads/molecules.jsonl).
 func getUserMoleculesPath() string {
-	homeDir, err := os.UserHomeDir()
+	resolved, err := userpaths.UserMoleculesPath()
 	if err != nil {
 		return ""
 	}
-
-	userPath := filepath.Join(homeDir, ".beads", MoleculeFileName)
-	if _, err := os.Stat(userPath); err == nil {
-		return userPath
+	if _, err := os.Stat(resolved.Path); err == nil {
+		return resolved.Path
 	}
 
 	return ""
