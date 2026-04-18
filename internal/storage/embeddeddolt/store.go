@@ -78,6 +78,10 @@ func WithLock(lock Unlocker) Option {
 // (GH#2571). The lock is released when Close is called, unless a pre-acquired
 // lock was supplied via WithLock (in which case the caller is responsible for it).
 func New(ctx context.Context, beadsDir, database, branch string, opts ...Option) (*EmbeddedDoltStore, error) {
+	if database == "" {
+		return nil, fmt.Errorf("embeddeddolt: database name must not be empty (caller should default to %q)", "beads")
+	}
+
 	var o options
 	for _, fn := range opts {
 		fn(&o)
@@ -122,6 +126,17 @@ func New(ctx context.Context, beadsDir, database, branch string, opts ...Option)
 			lock.Unlock()
 		}
 		return nil, fmt.Errorf("embeddeddolt: init schema: %w", err)
+	}
+
+	// Ensure dolt_ignore'd wisp tables exist in the working set.
+	// After a clone or branch switch, these tables are absent because
+	// dolt_ignore prevents them from being committed. Server mode handles
+	// this in newServerMode(); embedded mode must do it here. (GH#3270)
+	if err := s.ensureIgnoredTables(ctx); err != nil {
+		if ownsLock {
+			lock.Unlock()
+		}
+		return nil, fmt.Errorf("embeddeddolt: ensure ignored tables: %w", err)
 	}
 
 	return s, nil
@@ -236,6 +251,13 @@ func (s *EmbeddedDoltStore) initSchema(ctx context.Context) error {
 			}
 		}
 
+		// Ensure dolt_ignore'd tables exist before migrations — some migrations
+		// reference these tables (e.g. 0027 alters wisps, 0030 inserts into
+		// local_metadata). After a clone they don't exist yet.
+		if err := schema.EnsureIgnoredTables(ctx, tx); err != nil {
+			return fmt.Errorf("ensure ignored tables before migration: %w", err)
+		}
+
 		applied, err := schema.MigrateUp(ctx, tx)
 		if err != nil {
 			return err
@@ -253,6 +275,14 @@ func (s *EmbeddedDoltStore) initSchema(ctx context.Context) error {
 			}
 		}
 		return nil
+	})
+}
+
+// ensureIgnoredTables creates dolt_ignore'd wisp tables if they don't exist.
+// Uses withConn (not withRootConn) because the database is already created.
+func (s *EmbeddedDoltStore) ensureIgnoredTables(ctx context.Context) error {
+	return s.withConn(ctx, false, func(tx *sql.Tx) error {
+		return schema.EnsureIgnoredTables(ctx, tx)
 	})
 }
 
@@ -740,7 +770,7 @@ func (s *EmbeddedDoltStore) GetCustomTypes(ctx context.Context) ([]string, error
 		if yamlTypes := config.GetCustomTypesFromYAML(); len(yamlTypes) > 0 {
 			return yamlTypes, nil
 		}
-		return nil, nil
+		return nil, err
 	}
 	return result, nil
 }

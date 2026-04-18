@@ -152,7 +152,7 @@ Beads uses `dolt-native` sync mode exclusively. Dolt remotes handle sync directl
 
 #### Federation Configuration
 
-- `federation.remote`: Dolt remote URL (e.g., `dolthub://org/beads`, `gs://bucket/beads`, `s3://bucket/beads`)
+- `federation.remote`: Dolt remote URL (e.g., `dolthub://org/beads`, `gs://bucket/beads`, `s3://bucket/beads`, `az://account.blob.core.windows.net/container/beads`)
 - `federation.sovereignty`: Data sovereignty tier:
   - `T1`: Full sovereignty - data never leaves controlled infrastructure
   - `T2`: Regional sovereignty - data stays within region/jurisdiction
@@ -331,6 +331,10 @@ Configuration keys use dot-notation namespaces to organize settings:
 - `min_hash_length` - Minimum hash ID length (default: 4)
 - `max_hash_length` - Maximum hash ID length (default: 8)
 - `import.orphan_handling` - How to handle hierarchical issues with missing parents during import (default: `allow`)
+- `export.auto` - Refresh the git-tracked JSONL file after every write command (default: `true`)
+- `export.path` - Output filename relative to `.beads/` (default: `issues.jsonl`)
+- `export.interval` - Minimum time between auto-exports (default: `60s`)
+- `export.git-add` - Run `git add` on the export file after writing (default: `true`)
 - `export.error_policy` - Error handling strategy for exports (default: `strict`)
 - `export.retry_attempts` - Number of retry attempts for transient errors (default: 3)
 - `export.retry_backoff_ms` - Initial backoff in milliseconds for retries (default: 100)

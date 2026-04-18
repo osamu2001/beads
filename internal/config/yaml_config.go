@@ -35,7 +35,8 @@ var YamlOnlyKeys = map[string]bool{
 	"no-git-ops":      true, // Disable git ops in bd prime session close protocol (GH#593)
 
 	// Sync settings
-	"sync.git-remote":                          true,
+	"sync.remote":     true, // Primary: any Dolt-compatible remote URL
+	"sync.git-remote": true, // Deprecated: falls back from sync.remote
 	"sync.require_confirmation_on_mass_delete": true,
 
 	// Routing settings
@@ -65,6 +66,13 @@ var YamlOnlyKeys = map[string]bool{
 	// Dolt server settings
 	"dolt.idle-timeout":  true, // Idle auto-stop timeout (default "30m", "0" disables)
 	"dolt.shared-server": true, // Shared Dolt server at ~/.beads/shared-server/ (GH#2377)
+	"dolt.max-conns":     true, // Connection pool size override (default 10, GH#3140)
+
+	// Secrets: tokens and API keys must NOT be stored in the Dolt database
+	// because that data is pushed to remotes, triggering secret-scanning
+	// blocks on GitHub. Store them in local config.yaml instead.
+	"github.token":   true,
+	"linear.api_key": true,
 }
 
 // IsYamlOnlyKey returns true if the given key should be stored in config.yaml
