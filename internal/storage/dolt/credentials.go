@@ -547,10 +547,16 @@ func (s *DoltStore) shouldUseCLIForCredentials(_ context.Context) bool {
 var cloudAuthEnvPrefixes = []string{
 	"AZURE_STORAGE_", // Azure Blob Storage (AZURE_STORAGE_ACCOUNT, AZURE_STORAGE_KEY, AZURE_STORAGE_SAS_TOKEN)
 	"AWS_",           // AWS S3 (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_SESSION_TOKEN, AWS_REGION)
-	"GOOGLE_",        // GCS (GOOGLE_APPLICATION_CREDENTIALS)
 	"GCS_",           // GCS alternate (GCS_CREDENTIALS_FILE)
 	"OCI_",           // Oracle Cloud Infrastructure
 	"DOLT_REMOTE_",   // Dolt-specific remote credentials
+}
+
+// cloudAuthEnvKeys lists exact env vars that imply storage auth but do not
+// have a safely narrow prefix. GOOGLE_API_KEY, for example, is common in
+// general app environments but should not force Dolt push/pull onto the CLI.
+var cloudAuthEnvKeys = []string{
+	"GOOGLE_APPLICATION_CREDENTIALS",
 }
 
 // shouldUseCLIForCloudAuth returns true when CLI subprocess routing should
@@ -575,6 +581,11 @@ func (s *DoltStore) shouldUseCLIForCloudAuth() bool {
 		return false
 	}
 	for _, e := range os.Environ() {
+		for _, key := range cloudAuthEnvKeys {
+			if e == key || strings.HasPrefix(e, key+"=") {
+				return true
+			}
+		}
 		for _, prefix := range cloudAuthEnvPrefixes {
 			if strings.HasPrefix(e, prefix) {
 				return true

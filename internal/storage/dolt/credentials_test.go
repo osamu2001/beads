@@ -546,6 +546,7 @@ func TestCloudAuthCLIRouting(t *testing.T) {
 		{"dolt remote user", true, true, "DOLT_REMOTE_USER", "admin", true},
 		// Negative: missing conditions → SQL fallback
 		{"no cloud env", true, true, "", "", false},
+		{"google api key is not storage auth", true, true, "GOOGLE_API_KEY", "AIza...", false},
 		{"embedded mode", false, true, "AZURE_STORAGE_ACCOUNT", "myaccount", false},
 		{"no CLI remote", true, false, "AZURE_STORAGE_ACCOUNT", "myaccount", false},
 	}
